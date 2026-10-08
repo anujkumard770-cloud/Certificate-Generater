@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeNova Internship Certificate Generator</title>
+  
+  <!-- Google Fonts for Certificate Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@500;600;700;800&family=Great+Vibes&family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,600&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- CDN Libraries: PapaParse, SheetJS (XLSX), jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-badge">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="app-title">CodeNova Internship Certificate Generator</h1>
+        <p class="app-subtitle">100% Client-Side • Zero Cloud Upload • High-Fidelity Batch PDF Generator</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btnLoadDemo" class="btn btn-outline" title="Load sample certificate template and student spreadsheet">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        Load Demo Data
+      </button>
+      <button id="btnSaveConfig" class="btn btn-secondary" title="Save current field positions and settings">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        Save Config
+      </button>
+      <button id="btnLoadConfig" class="btn btn-secondary" title="Load saved configuration">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+        Load Config
+      </button>
+      <button id="btnResetConfig" class="btn btn-ghost" title="Reset fields to default coordinates">Reset</button>
+    </div>
+  </header>
+
+  <!-- Main App Layout -->
+  <main class="app-layout">
+    
+    <!-- LEFT PANEL: Uploads & Field Configuration -->
+    <aside class="panel left-panel">
+      <!-- Section: Uploads -->
+      <section class="card upload-section">
+        <div class="card-header">
+          <h2 class="card-title">1. Template & Data</h2>
+        </div>
+        
+        <!-- Template Upload -->
+        <div class="upload-box" id="templateDropzone">
+          <input type="file" id="templateInput" accept="image/png, image/jpeg, image/jpg" class="file-input">
+          <div class="upload-box-content">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <div class="upload-text">
+              <span class="upload-prompt">Upload Certificate Template</span>
+              <span class="upload-sub">PNG, JPG (Preserves exact resolution)</span>
+            </div>
+          </div>
+          <div id="templateFileInfo" class="file-info hidden">
+            <span id="templateFileName" class="file-name">template.png</span>
+            <span id="templateDimensions" class="file-dim">1920 × 1080 px</span>
+          </div>
+        </div>
+
+        <!-- Spreadsheet Upload -->
+        <div class="upload-box" id="spreadsheetDropzone">
+          <input type="file" id="spreadsheetInput" accept=".csv, .xlsx, .xls" class="file-input">
+          <div class="upload-box-content">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="8" y1="13" x2="16" y2="13"></line>
+              <line x1="8" y1="17" x2="16" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <div class="upload-text">
+              <span class="upload-prompt">Upload Student Spreadsheet</span>
+              <span class="upload-sub">CSV, XLSX (Auto column detection)</span>
+            </div>
+          </div>
+          <div id="spreadsheetFileInfo" class="file-info hidden">
+            <span id="spreadsheetFileName" class="file-name">students.xlsx</span>
+            <span id="spreadsheetCount" class="file-dim">0 students</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Dynamic Fields Selector & Visibility -->
+      <section class="card fields-section">
+        <div class="card-header">
+          <h2 class="card-title">2. Dynamic Fields</h2>
+          <span class="badge">Drag on canvas to place</span>
+        </div>
+        
+        <div class="field-pills-list" id="fieldPillsList">
+          <!-- Populated by JS: pills with checkbox + select button -->
+        </div>
+      </section>
+
+      <!-- Section: Selected Field Settings -->
+      <section class="card settings-section" id="fieldSettingsCard">
+        <div class="card-header">
+          <h2 class="card-title">3. Field Settings</h2>
+          <span id="activeFieldLabel" class="active-badge">Student Name</span>
+        </div>
+
+        <div class="settings-form">
+          <!-- Enable/Disable -->
+          <div class="form-row checkbox-row">
+            <label class="toggle-switch">
+              <input type="checkbox" id="fieldEnabledInput" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="form-label-inline">Enable this field on certificate</span>
+          </div>
+
+          <!-- Position X & Y -->
+          <div class="form-row-grid">
+            <div class="form-group">
+              <label for="fieldXInput">Position X (px)</label>
+              <input type="number" id="fieldXInput" class="form-control" step="1">
+            </div>
+            <div class="form-group">
+              <label for="fieldYInput">Position Y (px)</label>
+              <input type="number" id="fieldYInput" class="form-control" step="1">
+            </div>
+          </div>
+
+          <!-- Font Family -->
+          <div class="form-group">
+            <label for="fieldFontFamily">Font Family</label>
+            <select id="fieldFontFamily" class="form-control">
+              <optgroup label="Modern Sans-Serif">
+                <option value="Poppins">Poppins</option>
+                <option value="Montserrat">Montserrat</option>
+                <option value="Inter">Inter</option>
+                <option value="Roboto">Roboto</option>
+                <option value="Arial">Arial</option>
+              </optgroup>
+              <optgroup label="Elegant Serif">
+                <option value="Playfair Display">Playfair Display</option>
+                <option value="Cinzel">Cinzel (Roman Title)</option>
+                <option value="Merriweather">Merriweather</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+              </optgroup>
+              <optgroup label="Calligraphic / Script">
+                <option value="Great Vibes">Great Vibes</option>
+                <option value="Alex Brush">Alex Brush</option>
+              </optgroup>
+              <optgroup label="Monospace">
+                <option value="Courier New">Courier New</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Font Size & Weight -->
+          <div class="form-row-grid">
+            <div class="form-group">
+              <label for="fieldFontSize">Font Size (px)</label>
+              <input type="number" id="fieldFontSize" class="form-control" min="8" max="250" value="48">
+            </div>
+            <div class="form-group">
+              <label for="fieldFontWeight">Font Weight</label>
+              <select id="fieldFontWeight" class="form-control">
+                <option value="300">Light (300)</option>
+                <option value="400" selected>Normal (400)</option>
+                <option value="500">Medium (500)</option>
+                <option value="600">SemiBold (600)</option>
+                <option value="700">Bold (700)</option>
+                <option value="800">ExtraBold (800)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Font Style & Text Color -->
+          <div class="form-row-grid">
+            <div class="form-group">
+              <label for="fieldFontStyle">Font Style</label>
+              <select id="fieldFontStyle" class="form-control">
+                <option value="normal" selected>Normal</option>
+                <option value="italic">Italic</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="fieldColor">Text Color</label>
+              <div class="color-picker-group">
+                <input type="color" id="fieldColor" class="color-swatch" value="#1a202c">
+                <input type="text" id="fieldColorHex" class="form-control color-hex" value="#1a202c">
+              </div>
+            </div>
+          </div>
+
+          <!-- Text Alignment -->
+          <div class="form-group">
+            <label>Text Alignment</label>
+            <div class="btn-group-toggle" id="fieldAlignGroup">
+              <button type="button" class="btn-toggle" data-align="left" title="Align Left">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
+              </button>
+              <button type="button" class="btn-toggle active" data-align="center" title="Align Center">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg>
+              </button>
+              <button type="button" class="btn-toggle" data-align="right" title="Align Right">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Letter Spacing & Max Width -->
+          <div class="form-row-grid">
+            <div class="form-group">
+              <label for="fieldLetterSpacing">Letter Spacing (px)</label>
+              <input type="number" id="fieldLetterSpacing" class="form-control" min="-5" max="30" step="0.5" value="0">
+            </div>
+            <div class="form-group">
+              <label for="fieldMaxWidth">Max Width (px, 0=off)</label>
+              <input type="number" id="fieldMaxWidth" class="form-control" min="0" max="3000" step="10" value="800">
+            </div>
+          </div>
+
+          <!-- Long Name & Text Fit Controls -->
+          <div class="form-row checkbox-row">
+            <label class="toggle-switch">
+              <input type="checkbox" id="fieldAutoScale" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="form-label-inline">Auto-scale font size if text exceeds Max Width</span>
+          </div>
+
+        </div>
+      </section>
+    </aside>
+
+    <!-- CENTER PANEL: Interactive Canvas & Visual Stage -->
+    <section class="panel center-panel">
+      <!-- Stage Toolbar -->
+      <div class="stage-toolbar">
+        <div class="toolbar-left">
+          <div class="student-select-group">
+            <label for="studentPreviewSelect" class="toolbar-label">Preview Student:</label>
+            <select id="studentPreviewSelect" class="form-control select-student">
+              <option value="-1">-- Test Layout Mode --</option>
+            </select>
+          </div>
+          <div class="test-layout-group" id="testLayoutGroup">
+            <input type="text" id="testLayoutNameInput" class="form-control test-name-input" value="Anuj Kumar Dubey" placeholder="Enter sample name to test...">
+          </div>
+        </div>
+
+        <div class="toolbar-right">
+          <div class="zoom-controls">
+            <button id="btnZoomOut" class="btn-icon" title="Zoom Out">−</button>
+            <span id="zoomLevelDisplay">Fit</span>
+            <button id="btnZoomIn" class="btn-icon" title="Zoom In">+</button>
+            <button id="btnZoomReset" class="btn-icon" title="Reset Zoom / Fit to Screen">⛶</button>
+          </div>
+          <button id="btnToggleBoundingBoxes" class="btn btn-sm btn-outline active" title="Toggle Field Bounding Boxes">
+            Guides: ON
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Viewport -->
+      <div class="canvas-viewport" id="canvasViewport">
+        <!-- Message when no template is uploaded -->
+        <div id="noTemplateOverlay" class="canvas-empty-state">
+          <div class="empty-icon-wrap">
+            <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <h3>No Certificate Template Loaded</h3>
+          <p>Upload your PNG/JPG certificate background on the left, or click <strong>Load Demo Data</strong> above to get started immediately.</p>
+          <button id="btnEmptyLoadDemo" class="btn btn-primary">Load CodeNova Demo</button>
+        </div>
+
+        <!-- The Canvas Stage Container -->
+        <div class="canvas-stage-wrapper" id="canvasStageWrapper">
+          <canvas id="certificateCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Stage Footer / Coordinate Info -->
+      <div class="stage-footer">
+        <div class="footer-info">
+          <span id="canvasResInfo">Dimensions: Not loaded</span>
+          <span class="dot-separator">•</span>
+          <span id="mouseCoordsInfo">X: 0, Y: 0</span>
+          <span class="dot-separator">•</span>
+          <span class="hint-text"><kbd>Drag</kbd> field with mouse to position | <kbd>Arrow keys</kbd> for pixel nudging</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Data Table, Batch Generation, Downloads -->
+    <aside class="panel right-panel">
+      <!-- Tabs for Right Panel -->
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="tab-generation">Generation & PDFs</button>
+        <button class="tab-btn" data-tab="tab-students">Student Records (<span id="tabStudentCount">0</span>)</button>
+      </div>
+
+      <!-- TAB 1: Generation & Separate Downloads -->
+      <div class="tab-pane active" id="tab-generation">
+        <!-- Generation Action Card -->
+        <div class="card generation-card">
+          <div class="card-header">
+            <h2 class="card-title">Generate Certificates</h2>
+            <span id="readyStatusBadge" class="badge badge-warning">Needs Template</span>
+          </div>
+
+          <p class="section-desc">
+            Creates a high-resolution, uncompressed <strong>SEPARATE PDF</strong> for each selected student. No ZIP, no combined PDF.
+          </p>
+
+          <!-- PDF Output Quality Selector -->
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label for="exportQualitySelect" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span>PDF Output Quality</span>
+              <span class="badge badge-success" id="qualityDpiBadge">300 DPI Ultra HD</span>
+            </label>
+            <select id="exportQualitySelect" class="form-control" style="font-weight: 500;">
+              <option value="3.0">💎 400 DPI — Maximum Clarity (Super HD / Zero Blur)</option>
+              <option value="2.5" selected>⭐ 300 DPI — Ultra Print Quality (Recommended)</option>
+              <option value="2.0">✨ 200 DPI — High Definition (Fast)</option>
+              <option value="1.0">⚡ 96 DPI — Standard (Fastest)</option>
+            </select>
+          </div>
+
+          <button id="btnGenerateAll" class="btn btn-primary btn-large btn-block" disabled>
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Generate All Certificates (<span id="btnSelectedCount">0</span>)
+          </button>
+
+          <!-- Generation Progress Container -->
+          <div id="generationProgressContainer" class="progress-box hidden">
+            <div class="progress-header">
+              <span id="progressStatusText" class="progress-title">Generating certificates...</span>
+              <span id="progressCountText" class="progress-num">0 / 0</span>
+            </div>
+            <div class="progress-track">
+              <div id="progressBarFill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <div id="progressSuccessAlert" class="alert alert-success hidden">
+              ✓ All certificates generated successfully!
+            </div>
+          </div>
+
+          <!-- Download All Button with Browser Permission Advisory -->
+          <div id="downloadAllSection" class="download-all-section hidden">
+            <button id="btnDownloadAllSeparately" class="btn btn-success btn-block">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Download All Certificates (Separate PDFs)
+            </button>
+            <div class="download-notice">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <span>Your browser may ask permission to allow multiple downloads. Please click <strong>Allow</strong> if prompted.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generated Certificates Results List -->
+        <div class="card results-card">
+          <div class="card-header">
+            <h2 class="card-title">Generated Certificates</h2>
+            <span id="generatedCountBadge" class="badge">0 Ready</span>
+          </div>
+
+          <div id="generatedListContainer" class="generated-list">
+            <div class="empty-list-placeholder">
+              <p>No certificates generated yet.</p>
+              <p class="sub">Click "Generate All Certificates" once template and data are ready.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Imported Students Data Table -->
+      <div class="tab-pane" id="tab-students">
+        <div class="card students-card">
+          <div class="card-header table-header-flex">
+            <div>
+              <h2 class="card-title">Imported Students</h2>
+              <span id="importedSummaryText" class="sub-text">0 students imported</span>
+            </div>
+            <div class="table-actions">
+              <label class="select-all-label">
+                <input type="checkbox" id="selectAllCheckbox" checked>
+                <span>Select All</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Search / Filter input -->
+          <div class="table-search-bar">
+            <input type="text" id="studentSearchInput" class="form-control" placeholder="Search student by name or offer letter...">
+          </div>
+
+          <!-- Table Container -->
+          <div class="table-wrapper">
+            <table class="data-table" id="studentsTable">
+              <thead>
+                <tr>
+                  <th width="36"></th>
+                  <th>Student Name</th>
+                  <th>Internship</th>
+                  <th>Offer Letter</th>
+                  <th>Duration</th>
+                  <th>Mode</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="studentsTableBody">
+                <tr>
+                  <td colspan="7" class="empty-cell">No spreadsheet uploaded yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- PDF Preview Modal -->
+  <div id="pdfModal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="pdfModalTitle" class="modal-title">Certificate Preview</h3>
+        <button id="btnModalClose" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <iframe id="pdfModalFrame" class="pdf-frame" src=""></iframe>
+      </div>
+      <div class="modal-footer">
+        <span id="pdfModalFilename" class="modal-filename"></span>
+        <button id="btnModalDownload" class="btn btn-primary">Download PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
