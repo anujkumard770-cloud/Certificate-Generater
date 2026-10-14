@@ -202,6 +202,7 @@ const DOM = {
   templateFileInfo: document.getElementById('templateFileInfo'),
   templateFileName: document.getElementById('templateFileName'),
   templateDimensions: document.getElementById('templateDimensions'),
+  templateHdEnhanceToggle: document.getElementById('templateHdEnhanceToggle'),
   
   spreadsheetDropzone: document.getElementById('spreadsheetDropzone'),
   spreadsheetInput: document.getElementById('spreadsheetInput'),
@@ -1467,6 +1468,63 @@ function getStudentFilename(student) {
   return `${cleanName}-Offer-Letter.pdf`;
 }
 
+/**
+ * Create an enhanced Ultra-HD version of the uploaded template.
+ * Upscales using bicubic interpolation and applies an unsharp edge-clarity kernel
+ * to ensure certificate borders, logos, and textures stay razor-sharp at 300-400 DPI.
+ */
+function getEnhancedHdTemplateCanvas(targetWidth, targetHeight, applySharpen = true) {
+  if (!state.templateImage) return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // Draw scaled background with high-quality smoothing
+  ctx.drawImage(state.templateImage, 0, 0, targetWidth, targetHeight);
+
+  if (!applySharpen) return canvas;
+
+  try {
+    const imgData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+    const data = imgData.data;
+    const copy = new Uint8ClampedArray(data);
+    const w = targetWidth;
+    const h = targetHeight;
+    const k = 0.22; // Balanced edge enhancement factor (no noise, crisp borders)
+    const center = 1 + 4 * k;
+
+    // Apply fast 3x3 unsharp enhancement kernel
+    for (let y = 1; y < h - 1; y++) {
+      const row = y * w * 4;
+      const pRow = (y - 1) * w * 4;
+      const nRow = (y + 1) * w * 4;
+
+      for (let x = 1; x < w - 1; x++) {
+        const idx = row + x * 4;
+        const topIdx = pRow + x * 4;
+        const btmIdx = nRow + x * 4;
+        const leftIdx = row + (x - 1) * 4;
+        const rightIdx = row + (x + 1) * 4;
+
+        data[idx] = Math.min(255, Math.max(0, copy[idx] * center - (copy[topIdx] + copy[btmIdx] + copy[leftIdx] + copy[rightIdx]) * k));
+        data[idx + 1] = Math.min(255, Math.max(0, copy[idx + 1] * center - (copy[topIdx + 1] + copy[btmIdx + 1] + copy[leftIdx + 1] + copy[rightIdx + 1]) * k));
+        data[idx + 2] = Math.min(255, Math.max(0, copy[idx + 2] * center - (copy[topIdx + 2] + copy[btmIdx + 2] + copy[leftIdx + 2] + copy[rightIdx + 2]) * k));
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+  } catch (err) {
+    console.warn('HD edge enhancement fallback to smooth upscaling:', err);
+  }
+
+  return canvas;
+}
+
 async function generateAllCertificates() {
   if (!state.templateImage) {
     showToast('Please upload a certificate template image first.', 'error');
@@ -1517,6 +1575,12 @@ async function generateAllCertificates() {
     offscreenCtx.textRendering = 'geometricPrecision';
   }
 
+  // Pre-render enhanced Ultra-HD template background once for the entire batch
+  const shouldEnhanceTemplate = DOM.templateHdEnhanceToggle ? DOM.templateHdEnhanceToggle.checked : true;
+  DOM.progressStatusText.textContent = 'Enhancing template to 300+ DPI Ultra HD...';
+  await new Promise(resolve => setTimeout(resolve, 15));
+  const hdTemplateCanvas = getEnhancedHdTemplateCanvas(offscreenCanvas.width, offscreenCanvas.height, shouldEnhanceTemplate);
+
   const { jsPDF } = window.jspdf;
   const orientation = DOM.canvas.width >= DOM.canvas.height ? 'landscape' : 'portrait';
 
@@ -1530,9 +1594,13 @@ async function generateAllCertificates() {
     DOM.progressBarFill.style.width = `${Math.round((currentNum / total) * 100)}%`;
 
     try {
-      // 1. Draw template background at supersampled canvas resolution
+      // 1. Draw pre-enhanced Ultra-HD template background
       offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-      offscreenCtx.drawImage(state.templateImage, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+      if (hdTemplateCanvas) {
+        offscreenCtx.drawImage(hdTemplateCanvas, 0, 0);
+      } else {
+        offscreenCtx.drawImage(state.templateImage, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+      }
 
       // 2. Scale coordinate context so all field coordinates and fonts map 1:1, but rasterize at 300 DPI vector precision!
       offscreenCtx.save();

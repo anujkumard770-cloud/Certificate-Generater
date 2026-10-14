@@ -11,7 +11,7 @@
 
 ## ✨ Key Features
 
-- **🖼️ Native Template Preservation**: Uses your exact uploaded PNG/JPG as the certificate background without recreating or distorting design.
+- **🖼️ Native Template Preservation & HD Upscaling**: Uses your uploaded PNG/JPG as background, automatically applying adaptive bicubic supersampling & unsharp edge-clarity filters so the template matches 300–400 DPI vector text without blurring.
 - **🎯 Visual Drag-and-Drop Positioning**: Drag dynamic text fields directly on the canvas to place them exactly where you want.
 - **📊 Excel & CSV Spreadsheet Support**: Auto-detects columns (`Student Name`, `Internship`, `Offer Letter`, `Issue Date`, `Start Date`, `End Date`, `Duration`, `Mode`).
 - **🖨️ 300 to 400 DPI Ultra HD Print Quality**: Employs supersampling and geometric precision text rendering so certificates never pixelate or blur when zoomed or printed.
